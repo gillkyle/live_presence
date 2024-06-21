@@ -18,7 +18,7 @@ defmodule LivePresenceWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :index
-    live "/home", Home
+    live "/dashboard", Dashboard
   end
 
   # Other scopes may use custom stacks.

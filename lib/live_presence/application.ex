@@ -17,7 +17,8 @@ defmodule LivePresence.Application do
       # Start a worker by calling: LivePresence.Worker.start_link(arg)
       # {LivePresence.Worker, arg},
       # Start to serve requests, typically the last entry
-      LivePresenceWeb.Endpoint
+      LivePresenceWeb.Endpoint,
+      LivePresenceWeb.Presence
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
