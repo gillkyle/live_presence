@@ -4,12 +4,16 @@ defmodule LivePresenceWeb.Dashboard do
 
   @visitor_topic "visitor_topic"
   def mount(_params, %{"visitor" => visitor}, socket) do
+    # Ensure any existing presence for the same socket.id is cleaned up
+    Presence.untrack(self(), @visitor_topic, socket.id)
+
     Presence.track(self(), @visitor_topic, socket.id, %{
       socket_id: socket.id,
       x: 24,
       y: 24,
       msg: "",
-      name: visitor
+      name: visitor,
+      colors: LivePresenceWeb.Visitors.random_color(visitor)
     })
 
     LivePresenceWeb.Endpoint.subscribe(@visitor_topic)
@@ -18,17 +22,20 @@ defmodule LivePresenceWeb.Dashboard do
       Presence.list(@visitor_topic)
       |> Enum.map(fn {_, data} -> data[:metas] |> List.first() end)
 
+    IO.inspect(initial_visitors)
     IO.inspect("lenght of initial_visitors: #{length(initial_visitors)}")
-    # dedupe the initial_visitors, only keeping one per socket_id
-    fil_initial_visitors =
-      Enum.uniq_by(initial_visitors, fn visitor -> visitor.socket_id end)
 
     updated =
       socket
-      |> assign(:visitors, fil_initial_visitors)
+      |> assign(:visitors, initial_visitors)
       |> assign(:socket_id, socket.id)
 
     {:ok, updated}
+  end
+
+  def terminate(reason, socket) do
+    Presence.untrack(self(), @visitor_topic, socket.id)
+    {:ok, socket}
   end
 
   # pattern match to handle the case where the visitor is not present
@@ -93,50 +100,49 @@ defmodule LivePresenceWeb.Dashboard do
         />
       </form>
     </section>
-    <%= for visitor <- @visitors do %>
-      <% colors = LivePresenceWeb.Visitors.random_color(visitor.name) %>
-      <aside
-        style={"left: #{visitor.x}%; top: #{visitor.y}%"}
-        id="mouse-tracker"
-        phx-hook="MouseTracker"
-        class="text-emerald-500 pb-6 flex flex-col absolute pointer-events-none whitespace-nowrap overflow-hidden"
-      >
-        <svg
-          class="size-4"
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          fill="none"
-          viewBox="0 0 20 20"
+    <ul id="mouse-tracker" phx-hook="MouseTracker">
+      <%= for visitor <- @visitors do %>
+        <li
+          style={"left: #{visitor.x}%; top: #{visitor.y}%"}
+          class="text-emerald-500 pb-6 flex flex-col absolute pointer-events-none whitespace-nowrap overflow-hidden"
         >
-          <path
-            fill="currentColor"
-            style={"fill: #{colors[:cursor]}"}
-            d="M19.438 6.716 1.115.05A.832.832 0 0 0 .05 1.116L6.712 19.45a.834.834 0 0 0 1.557.025l3.198-8 7.995-3.2a.833.833 0 0 0 0-1.559h-.024Z"
+          <svg
+            class="size-4"
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            fill="none"
+            viewBox="0 0 20 20"
           >
-          </path>
-        </svg>
-        <span
-          style={"background: #{colors[:bg]}; color: #{colors[:text]}; border-color: #{colors[:border]}"}
-          class="shadow-md border shadow-neutral-100 ml-4 px-2 rounded-full text-[10px] font-medium"
-        >
-          <%= visitor.name %>
-          <%= if visitor.msg != "" do %>
-            -
-          <% end %>
-          <%!-- conditionall add a : when there is a msg, and render it in an 8px span --%>
-          <%= if visitor.msg do %>
-            <span class="text-[8px] font-normal"><%= visitor.msg %></span>
-          <% end %>
-        </span>
-        <%!-- <span
+            <path
+              fill="currentColor"
+              style={"fill: #{visitor.colors[:cursor]}"}
+              d="M19.438 6.716 1.115.05A.832.832 0 0 0 .05 1.116L6.712 19.45a.834.834 0 0 0 1.557.025l3.198-8 7.995-3.2a.833.833 0 0 0 0-1.559h-.024Z"
+            >
+            </path>
+          </svg>
+          <span
+            style={"background: #{visitor.colors[:bg]}; color: #{visitor.colors[:text]}; border-color: #{visitor.colors[:border]}"}
+            class="shadow-md border shadow-neutral-100 ml-4 px-2 rounded-full text-[10px] font-medium"
+          >
+            <%= visitor.name %>
+            <%= if visitor.msg != "" do %>
+              -
+            <% end %>
+            <%!-- conditionall add a : when there is a msg, and render it in an 8px span --%>
+            <%= if visitor.msg do %>
+              <span class="text-[8px] font-normal"><%= visitor.msg %></span>
+            <% end %>
+          </span>
+          <%!-- <span
           style={"background-color: #{colors[:bg]}; color: #{colors[:text]}; border-color: #{colors[:border]}"}
           class="mt-1 ml-4 rounded-lg p-1 text-[9px] text-left opacity-80 fit-content"
         >
 
         </span> --%>
-      </aside>
-    <% end %>
+        </li>
+      <% end %>
+    </ul>
     """
   end
 end
