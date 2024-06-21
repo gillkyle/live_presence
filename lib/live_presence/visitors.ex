@@ -1,0 +1,101 @@
+defmodule LivePresenceWeb.Name do
+  def random_name do
+    prefix = ~w(
+      Adorable
+      Adventurous
+      Aggressive
+      Alert
+      Attractive
+      Average
+      Beautiful
+      Blue-eyed
+      Blushing
+      Bright
+      Clean
+      Clear
+      Cloudy
+      Colorful
+      Crowded
+      Cute
+      Dark
+      Drab
+      Distinct
+      Dull
+      Elegant
+      Excited
+      Fancy
+      Filthy
+      Glamorous
+      Gleaming
+      Gorgeous
+      Graceful
+      Grotesque
+      Handsome
+      Homely
+      Light
+      Long
+      Magnificent
+      Misty
+      Motionless
+      Muddy
+      Old-fashioned
+      Plain
+      Poised
+      Precious
+      Prickly
+      Proper
+      Shiny
+      Smoggy
+      Sparkling
+      Spotless
+      Stormy
+      Strange
+      Ugly
+      Ugly
+      Unsightly
+      Unusual
+      Wide-eyed
+      Zealous
+    ) |> Enum.random()
+
+    animal =
+      ~w(
+      Aardvark
+      Albatross
+      Alligator
+      Alpaca
+      Ant
+      Anteater
+      Antelope
+      Ape
+      Armadillo
+      Baboon
+      Badger
+      Barracuda
+      Bat
+      Bear
+      Beaver
+      Bee
+      Bison
+      Boar
+      Buffalo
+      Butterfly
+      Camel
+      Caribou
+      Cat
+      Caterpillar
+      Cattle
+      Chamois
+      Cheetah
+      Chicken
+      Chimpanzee
+      Chinchilla
+      Chough
+      Clam
+      Cobra
+    )
+      |> Enum.random()
+
+    "#{prefix} #{animal}"
+  end
+end
