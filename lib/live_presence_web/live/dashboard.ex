@@ -8,6 +8,7 @@ defmodule LivePresenceWeb.Dashboard do
       socket_id: socket.id,
       x: 24,
       y: 24,
+      msg: "",
       name: visitor
     })
 
@@ -17,9 +18,14 @@ defmodule LivePresenceWeb.Dashboard do
       Presence.list(@visitor_topic)
       |> Enum.map(fn {_, data} -> data[:metas] |> List.first() end)
 
+    IO.inspect("lenght of initial_visitors: #{length(initial_visitors)}")
+    # dedupe the initial_visitors, only keeping one per socket_id
+    fil_initial_visitors =
+      Enum.uniq_by(initial_visitors, fn visitor -> visitor.socket_id end)
+
     updated =
       socket
-      |> assign(:visitors, initial_visitors)
+      |> assign(:visitors, fil_initial_visitors)
       |> assign(:socket_id, socket.id)
 
     {:ok, updated}
@@ -31,16 +37,12 @@ defmodule LivePresenceWeb.Dashboard do
   end
 
   def handle_event("mouse-move", %{"x" => x, "y" => y}, socket) do
-    key = socket.id
-    payload = %{x: x, y: y}
+    updatePresence(socket.id, %{x: x, y: y})
+    {:noreply, socket}
+  end
 
-    visitor_metas =
-      Presence.get_by_key(@visitor_topic, key)[:metas]
-      |> List.first()
-      |> Map.merge(payload)
-
-    Presence.update(self(), @visitor_topic, key, visitor_metas)
-
+  def handle_event("send_message", %{"msg" => msg}, socket) do
+    updatePresence(socket.id, %{msg: msg})
     {:noreply, socket}
   end
 
@@ -57,8 +59,40 @@ defmodule LivePresenceWeb.Dashboard do
     {:noreply, updated}
   end
 
+  def updatePresence(key, payload) do
+    visitor_metas =
+      Presence.get_by_key(@visitor_topic, key)[:metas]
+      |> List.first()
+      |> Map.merge(payload)
+
+    Presence.update(self(), @visitor_topic, key, visitor_metas)
+  end
+
   def render(assigns) do
     ~H"""
+    <section class="flex flex-1 flex-col h-full justify-end items-center text-center">
+      <form
+        id="msgform"
+        phx-submit="send_message"
+        class="rounded-full w-full bg-gray-100 p-1.5 drop-shadow-lg flex mx-auto gap-2 border border-gray-300"
+      >
+        <input
+          class="border w-full border-gray-200 py-2 px-4 bg-white text-gray-600 placeholder-gray-400 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-300/50 focus:ring-offset-1 focus:ring-offset-blue-200/50  min-w-48"
+          maxlength="45"
+          aria-label="Your message"
+          type="text"
+          id="msg"
+          name="msg"
+          placeholder="Compose a message..."
+        />
+        <input
+          id="submit-msg"
+          type="submit"
+          class="rounded-full bg-blue-600 text-white text-sm font-semibold py-1 px-4 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-1 focus:ring-offset-blue-200/50"
+          value="Send Message →"
+        />
+      </form>
+    </section>
     <%= for visitor <- @visitors do %>
       <% colors = LivePresenceWeb.Visitors.random_color(visitor.name) %>
       <aside
@@ -84,10 +118,23 @@ defmodule LivePresenceWeb.Dashboard do
         </svg>
         <span
           style={"background: #{colors[:bg]}; color: #{colors[:text]}; border-color: #{colors[:border]}"}
-          class="shadow-md border shadow-neutral-100 ml-4 px-2 rounded-full text-[10px]  font-medium"
+          class="shadow-md border shadow-neutral-100 ml-4 px-2 rounded-full text-[10px] font-medium"
         >
           <%= visitor.name %>
+          <%= if visitor.msg != "" do %>
+            -
+          <% end %>
+          <%!-- conditionall add a : when there is a msg, and render it in an 8px span --%>
+          <%= if visitor.msg do %>
+            <span class="text-[8px] font-normal"><%= visitor.msg %></span>
+          <% end %>
         </span>
+        <%!-- <span
+          style={"background-color: #{colors[:bg]}; color: #{colors[:text]}; border-color: #{colors[:border]}"}
+          class="mt-1 ml-4 rounded-lg p-1 text-[9px] text-left opacity-80 fit-content"
+        >
+
+        </span> --%>
       </aside>
     <% end %>
     """
